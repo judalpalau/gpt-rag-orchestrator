@@ -23,12 +23,14 @@ LOGLEVEL = os.environ.get('LOGLEVEL', 'DEBUG').upper()
 logging.basicConfig(level=LOGLEVEL)
 
 # Env variables
+USEMID = os.environ.get("useMID") or "false"
+USEMID = True if USEMID.lower() == "true" else False
 AZURE_OPENAI_TEMPERATURE = os.environ.get("AZURE_OPENAI_TEMPERATURE") or "0.17"
 AZURE_OPENAI_TOP_P = os.environ.get("AZURE_OPENAI_TOP_P") or "0.27"
 AZURE_OPENAI_RESP_MAX_TOKENS = os.environ.get("AZURE_OPENAI_MAX_TOKENS") or "1000"
 AZURE_OPENAI_LOAD_BALANCING = os.environ.get("AZURE_OPENAI_LOAD_BALANCING") or "false"
 AZURE_OPENAI_LOAD_BALANCING = True if AZURE_OPENAI_LOAD_BALANCING.lower() == "true" else False
-AZURE_OPENAI_CHATGPT_MODEL = os.environ.get("AZURE_OPENAI_CHATGPT_MODEL")
+AZURE_OPENAI_CHATGPT_MODEL = os.environ.get("AZURE_OPENAI_CHATGPT_MODEL") or "gpt-35-turbo"
 AZURE_OPENAI_EMBEDDING_MODEL = os.environ.get("AZURE_OPENAI_EMBEDDING_MODEL")
 ORCHESTRATOR_MESSAGES_LANGUAGE = os.environ.get("ORCHESTRATOR_MESSAGES_LANGUAGE") or "en"
 AZURE_DB_ID = os.environ.get("AZURE_DB_ID")
@@ -149,11 +151,16 @@ def chat_complete(messages, functions, function_call='auto'):
 
     url = f"{oai_config['endpoint']}/openai/deployments/{oai_config['deployment']}/chat/completions?api-version={oai_config['api_version']}"
 
-    headers = {
-        "Content-Type": "application/json",
-        # "api-key": oai_config['api_key']
-        "Authorization": "Bearer "+ oai_config['api_key'] 
-    }
+    if USEMID:
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer "+ oai_config['api_key'] 
+        }
+    else:
+        headers = {
+            "Content-Type": "application/json",
+            "api-key": oai_config['api_key'] 
+        }
 
     data = {
         "messages": messages,
@@ -290,15 +297,27 @@ def load_sk_plugin(name, oai_config):
 def create_kernel(service_id='aoai_chat_completion'):
     kernel = sk.Kernel()
     chatgpt_config = get_aoai_config(AZURE_OPENAI_CHATGPT_MODEL)
-    kernel.add_service(
-        AzureChatCompletion(
-            service_id=service_id,
-            deployment_name=chatgpt_config['deployment'],
-            endpoint=chatgpt_config['endpoint'],
-            api_version=chatgpt_config['api_version'],
-            ad_token= chatgpt_config['api_key']
+    if USEMID:
+        kernel.add_service(
+            AzureChatCompletion(
+                service_id=service_id,
+                deployment_name=chatgpt_config['deployment'],
+                endpoint=chatgpt_config['endpoint'],
+                api_version=chatgpt_config['api_version'],
+                ad_token= chatgpt_config['api_key']
+            )
         )
-    )
+    else:
+        kernel.add_service(
+            AzureChatCompletion(
+                service_id=service_id,
+                deployment_name=chatgpt_config['deployment'],
+                endpoint=chatgpt_config['endpoint'],
+                api_version=chatgpt_config['api_version'],
+                api_key= chatgpt_config['api_key']
+            )
+        )
+        
     return kernel
 
 def get_usage_tokens(function_result, token_type='total'):
@@ -322,11 +341,15 @@ def get_list_from_string(string):
     return result
 
 def get_aoai_config(model):
-
+    
     resource = get_next_resource(model)
     
-    credential = DefaultAzureCredential()
-    token = credential.get_token("https://cognitiveservices.azure.com/.default")
+    if USEMID:
+        credential = DefaultAzureCredential()
+        token = credential.get_token("https://cognitiveservices.azure.com/.default")
+    else:
+        token = get_secret("azureOpenAIKey")
+
 
     if model in ('gpt-35-turbo', 'gpt-35-turbo-16k', 'gpt-4', 'gpt-4-32k','gpt-4o'):
         deployment = os.environ.get("AZURE_OPENAI_CHATGPT_DEPLOYMENT") or "gpt-4o"
@@ -341,7 +364,7 @@ def get_aoai_config(model):
         "deployment": deployment,
         "model": model, # ex: 'gpt-35-turbo-16k', 'gpt-4', 'gpt-4-32k', 'gpt-4o'
         "api_version": os.environ.get("AZURE_OPENAI_API_VERSION") or "2024-03-01-preview",
-        "api_key": token.token
+        "api_key": token.token if USEMID else token
     }
     return result
 

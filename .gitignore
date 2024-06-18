@@ -7,7 +7,6 @@ csx
 .vs
 edge
 Publish
-.vscode/
 
 # Loadtest
 Results/
@@ -50,6 +49,7 @@ dist
 # Python Environments
 .env
 .venv
+.vscode
 env/
 venv/
 ENV/
