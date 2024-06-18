@@ -148,8 +148,10 @@ def chat_complete(messages, functions, function_call='auto'):
     oai_config = get_aoai_config(AZURE_OPENAI_CHATGPT_MODEL)
 
     messages = optmize_messages(messages, AZURE_OPENAI_CHATGPT_MODEL)
+    logging.info(messages)
 
     url = f"{oai_config['endpoint']}/openai/deployments/{oai_config['deployment']}/chat/completions?api-version={oai_config['api_version']}"
+    logging.info(url)
 
     if USEMID:
         headers = {
@@ -161,7 +163,7 @@ def chat_complete(messages, functions, function_call='auto'):
             "Content-Type": "application/json",
             "api-key": oai_config['api_key'] 
         }
-
+    logging.info(headers)
     data = {
         "messages": messages,
         "max_tokens": int(AZURE_OPENAI_RESP_MAX_TOKENS)
@@ -178,7 +180,10 @@ def chat_complete(messages, functions, function_call='auto'):
         data['top_p'] = float(AZURE_OPENAI_TOP_P) 
 
     start_time = time.time()
+    logging.info("POST")
+    logging.info(json.dumps(data))
     response = requests.post(url, headers=headers, data=json.dumps(data)).json()
+    logging.info(response)
     response_time =  round(time.time() - start_time,2)
     logging.info(f"[util__module] called chat completion api in {response_time:.6f} seconds")
 

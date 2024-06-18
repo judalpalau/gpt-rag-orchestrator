@@ -127,7 +127,7 @@ async def get_answer(history,database_info):
     if not bypass_nxt_steps:
 
         try:
-            # detect language
+            # detect language Agregar si se desea un idioma en particular
             logging.debug(f"[code_orchest] detecting language")
             start_time = time.time()
             function_result = await call_semantic_function(kernel, conversationPlugin["DetectLanguage"], arguments)
@@ -138,7 +138,7 @@ async def get_answer(history,database_info):
             response_time = round(time.time() - start_time,2)
             logging.info(f"[code_orchest] finished detecting language: {detected_language}. {response_time} seconds.")
 
-            # conversation summary
+            # conversation summary Agregar si se desea resumir o no
             logging.debug(f"[code_orchest] summarizing conversation")
             start_time = time.time()
             if arguments["history"] != '[]':
@@ -153,7 +153,7 @@ async def get_answer(history,database_info):
             response_time = round(time.time() - start_time,2)
             logging.info(f"[code_orchest] finished summarizing conversation: {conversation_history_summary}. {response_time} seconds.")
 
-            # triage (find intent and generate answer and search query when applicable)
+            # triage (find intent and generate answer and search query when applicable) Revisar
             logging.debug(f"[code_orchest] checking intent. ask: {ask}")
             start_time = time.time()
             triage_dict = await triage(kernel, conversationPlugin, arguments)
@@ -216,7 +216,7 @@ async def get_answer(history,database_info):
                     sources=teradata_sources+sql_sources+bing_sources+search_sources
                 arguments["sources"] = sources
             
-                # Generate the answer augmented by the retrieval
+                # Generate the answer augmented by the retrieval #SI LAS FUENTES SON VACIAS, NO USAR
                 logging.info(f"[code_orchest] generating bot answer. ask: {ask}")
                 start_time = time.time()                                                          
                 arguments["history"] = json.dumps(messages[:-1], ensure_ascii=False) # update context with full history
