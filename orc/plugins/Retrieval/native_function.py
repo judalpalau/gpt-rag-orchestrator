@@ -47,6 +47,8 @@ if AZURE_SEARCH_API_VERSION < '2023-10-01-Preview': # query is using vectorQueri
 
 AZURE_SEARCH_TOP_K = os.environ.get("AZURE_SEARCH_TOP_K") or "3"
 
+USEMID = os.environ.get("useMID") or "false"
+USEMID = True if USEMID.lower() == "true" else False
 AZURE_SEARCH_OYD_USE_SEMANTIC_SEARCH = os.environ.get("AZURE_SEARCH_OYD_USE_SEMANTIC_SEARCH") or "false"
 AZURE_SEARCH_OYD_USE_SEMANTIC_SEARCH = True if AZURE_SEARCH_OYD_USE_SEMANTIC_SEARCH == "true" else False
 AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG = os.environ.get("AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG") or "my-semantic-config"
@@ -80,11 +82,19 @@ def generate_embeddings(text):
 
     embeddings_config = get_aoai_config(AZURE_OPENAI_EMBEDDING_MODEL)
 
-    client = AzureOpenAI(
-        api_version = embeddings_config['api_version'],
-        azure_endpoint = embeddings_config['endpoint'],
-        azure_ad_token = embeddings_config['api_key'],
-    )
+    
+    if USEMID:
+        client = AzureOpenAI(
+            api_version = embeddings_config['api_version'],
+            azure_endpoint = embeddings_config['endpoint'],
+            azure_ad_token = embeddings_config['api_key'],
+        )
+    else:
+        client = AzureOpenAI(
+            api_version = embeddings_config['api_version'],
+            azure_endpoint = embeddings_config['endpoint'],
+            api_key = embeddings_config['api_key'],
+        )
  
     embeddings =  client.embeddings.create(input = [text], model= embeddings_config['deployment']).data[0].embedding
 
